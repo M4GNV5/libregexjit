@@ -16,11 +16,13 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 %union
 {
 	const char *literal;
-	size_t size;
+	size_t number;
 	regjit_expression_t *expr;
 	regjit_expr_list_t *exprlist;
 	regjit_repeat_t *repetition;
 };
+
+%define parse.error verbose
 
 %token <literal> LITERAL
 %token CHARSET_OPEN
@@ -31,7 +33,7 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 %token REPEAT_ANYPOSITIVE
 %token REPEAT_OPEN
 %token REPEAT_CLOSE
-%token <size> NUMBER
+%token <number> NUMBER
 %token COMMA
 
 %type <expr> Expression
@@ -128,10 +130,10 @@ Repetition:
 
 %%
 
-int yyerror(char *s) {
-  printf("yyerror : %s\n",s);
+int yyerror(char *err) {
+	puts(err);
 }
 
 int main(void) {
-  yyparse();
+	yyparse();
 }
