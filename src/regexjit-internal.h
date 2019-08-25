@@ -21,7 +21,6 @@ typedef struct
 		REGJIT_EXPR_OR,
 		REGJIT_EXPR_REPEAT,
 		REGJIT_EXPR_GROUP,
-        REGJIT_EXPR_EXPRLIST,
 	} kind;
 	union
 	{

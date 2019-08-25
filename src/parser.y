@@ -41,6 +41,7 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 %type <expr> Constant
 %type <expr> Charset
 %type <expr> Group
+%type <expr> OrExpression
 %type <expr> RepeatedExpression
 %type <exprlist> ExpressionList
 %type <repetition> Repetition
@@ -65,6 +66,7 @@ Expression:
 	  Constant
 	| Charset
 	| Group
+	| OrExpression
 	| RepeatedExpression
 	;
 
@@ -92,6 +94,23 @@ Group:
 			$$ = malloc(sizeof(regjit_expression_t));
 			$$->kind = REGJIT_EXPR_GROUP;
 			$$->args.body = $2;
+		}
+	;
+
+OrExpression:
+	Expression OR Expression
+		{
+			regjit_expr_list_t *right = malloc(sizeof(regjit_expr_list_t));
+			right->expr = $3;
+			right->next = NULL;
+
+			regjit_expr_list_t *left = malloc(sizeof(regjit_expr_list_t));
+			left->expr = $1;
+			left->next = right;
+
+			$$ = malloc(sizeof(regjit_expression_t));
+			$$->kind = REGJIT_EXPR_OR;
+			$$->args.body = left;
 		}
 	;
 
