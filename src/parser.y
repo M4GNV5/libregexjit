@@ -46,8 +46,16 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 %type <exprlist> ExpressionList
 %type <repetition> Repetition
 
-%start ExpressionList
+%start RootRule
+%parse-param {regjit_expr_list_t **result}
 %%
+
+RootRule:
+	ExpressionList
+		{
+			*result = $1;
+		}
+	;
 
 ExpressionList:
 	  Expression ExpressionList
@@ -154,6 +162,6 @@ int yyerror(char *err) {
 	puts(err);
 }
 
-int main(void) {
+/*int main(void) {
 	yyparse();
-}
+}*/

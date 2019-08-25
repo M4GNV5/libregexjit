@@ -1,18 +1,19 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct regjit_regex regjit_regex_t;
 
 typedef struct {
-    size_t pos;
-    size_t len;
+	const char *start;
+	const char *end;
 } regjit_match_t;
 
 typedef struct {
-    regjit_match_t *matches;
-    size_t count;
+	regjit_match_t *matches;
+	size_t count;
 } regjit_result_t;
 
 regjit_regex_t *regjit_compile(const char *expression, unsigned flags);

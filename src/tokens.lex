@@ -8,6 +8,8 @@ literal			[_a-zA-Z0-9]+
 %%
 
 "|"				return(OR);
+"*"				return(REPEAT_ANY);
+"+"				return(REPEAT_ANYPOSITIVE);
 "("				return(GROUP_OPEN);
 ")"				return(GROUP_CLOSE);
 "["				return(CHARSET_OPEN);
