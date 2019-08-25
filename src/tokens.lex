@@ -23,3 +23,20 @@ literal			[_a-zA-Z0-9]+
 	strcpy((char *)yylval.literal, yytext);
 	return(LITERAL);
 }
+
+%%
+
+regjit_expr_list_t *regjit_parse(const char *expression)
+{
+	regjit_expr_list_t *result = NULL;
+
+	printf("parsing '%s'\n", expression);
+
+	YY_BUFFER_STATE buffer = yy_scan_string(expression);
+
+	if(yyparse(&result))
+		result = NULL;
+
+	yy_delete_buffer(buffer);
+	return result;
+}

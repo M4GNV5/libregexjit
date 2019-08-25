@@ -5,6 +5,7 @@
 #include <jit/jit-dump.h>
 #include "regexjit-internal.h"
 #include "parser.h"
+#include "tokens.h"
 
 #define const(t, v) (jit_value_create_nint_constant(ctx->func, jit_type_##t, (v)))
 #define constl(t, v) (jit_value_create_long_constant(ctx->func, jit_type_##t, (v)))
@@ -139,15 +140,26 @@ void regjit_compile_repeat(regjit_compilation_t *ctx, regjit_expression_t *expr)
 	jit_value_t tmp = jit_insn_add(ctx->func, matchCount, const(nuint, 1));
 	jit_insn_store(ctx->func, matchCount, tmp);
 
-	tmp = jit_insn_lt(ctx->func, matchCount, const(nuint, repeat->max));
-	jit_insn_branch_if(ctx->func, tmp, &loop);
+	if(repeat->max == SIZE_MAX)
+	{
+		jit_insn_branch(ctx->func, &loop);
+	}
+	else
+	{
+		tmp = jit_insn_lt(ctx->func, matchCount, const(nuint, repeat->max));
+		jit_insn_branch_if(ctx->func, tmp, &loop);
 
-	jit_insn_branch(ctx->func, &repeatEnd);
+		jit_insn_branch(ctx->func, &repeatEnd);
+	}
 
 	//did not match
 	jit_insn_label(ctx->func, &noMatch);
-	tmp = jit_insn_lt(ctx->func, matchCount, const(nuint, repeat->min));
-	jit_insn_branch_if(ctx->func, tmp, globalNoMatch);
+
+	if(repeat->min != 0)
+	{
+		tmp = jit_insn_lt(ctx->func, matchCount, const(nuint, repeat->min));
+		jit_insn_branch_if(ctx->func, tmp, globalNoMatch);
+	}
 
 	//it matched >= min and <= max times, we are done
 	jit_insn_label(ctx->func, &repeatEnd);
@@ -207,8 +219,9 @@ void regjit_compile_global(regjit_compilation_t *ctx, regjit_expr_list_t *expres
 
 regjit_regex_t *regjit_compile(const char *expression, unsigned flags)
 {
-	regjit_expr_list_t *expressions;
-	yyparse(&expressions);
+	regjit_expr_list_t *expressions = regjit_parse(expression);
+	if(!expressions)
+		return NULL;
 
 	jit_context_t context = jit_context_create();
 

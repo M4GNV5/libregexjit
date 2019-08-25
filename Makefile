@@ -17,6 +17,7 @@ RESULT += bin/libregexjit.a
 EXTERN_LIBS += -lm
 EXTERN_LIBS += -ldl
 EXTERN_LIBS += -lpthread
+EXTERN_LIBS += -lfl
 EXTERN_LIBS += $(LIBJIT_BIN)
 
 CFLAGS = -I$(LIBJIT_DIR) -std=c99
@@ -37,7 +38,10 @@ clean-deps:
 	$(MAKE) -C libjit clean
 
 $(RESULT): $(LIBJIT_BIN) $(BIN) $(OBJECTS)
-	ar rcs $(BIN)/libregexjit.a
+	ar rcs $(BIN)/libregexjit.a $(OBJECTS)
+
+example: $(RESULT)
+	$(CC) -g example.c $(RESULT) $(LIBJIT_BIN) -o bin/example $(EXTERN_LIBS)
 
 $(BIN):
 	mkdir $(BIN)
