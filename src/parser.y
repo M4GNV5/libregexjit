@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "regexjit-internal.h"
+#include "tokens.h"
 
 regjit_repeat_t *create_repetition(size_t min, size_t max)
 {

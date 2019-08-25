@@ -1,6 +1,7 @@
 %{
+#include <stdio.h>
 #include "regexjit-internal.h"
-#include "parser.tab.h"
+#include "parser.h"
 %}
 
 literal			[_a-zA-Z0-9]+
