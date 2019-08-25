@@ -25,6 +25,7 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 %define parse.error verbose
 
 %token <literal> LITERAL
+%token OR
 %token CHARSET_OPEN
 %token CHARSET_CLOSE
 %token GROUP_OPEN
@@ -50,13 +51,13 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 ExpressionList:
 	  Expression ExpressionList
 	  	{
-			yylval.exprlist = malloc(sizeof(regjit_repeat_t));
-			yylval.exprlist->expr = $1;
-			yylval.exprlist->next = $2;
+			$$ = malloc(sizeof(regjit_expr_list_t));
+			$$->expr = $1;
+			$$->next = $2;
 		}
 	| /* empty */
 		{
-			yylval.exprlist = NULL;
+			$$ = NULL;
 		}
 	;
 
@@ -70,17 +71,17 @@ Expression:
 Constant:
 	LITERAL
 		{
-			yylval.expr = malloc(sizeof(regjit_expression_t));
-			yylval.expr->kind = REGJIT_EXPR_CONST;
-			yylval.expr->args.literal = $1;
+			$$ = malloc(sizeof(regjit_expression_t));
+			$$->kind = REGJIT_EXPR_CONST;
+			$$->args.literal = $1;
 		}
 	;
 
 Charset:
 	CHARSET_OPEN LITERAL CHARSET_CLOSE
 		{
-			yylval.expr = malloc(sizeof(regjit_expression_t));
-			yylval.expr->kind = REGJIT_EXPR_CHARSET;
+			$$ = malloc(sizeof(regjit_expression_t));
+			$$->kind = REGJIT_EXPR_CHARSET;
 			/* TODO parse $2 */
 		}
 	;
@@ -88,9 +89,9 @@ Charset:
 Group:
 	GROUP_OPEN ExpressionList GROUP_CLOSE
 		{
-			yylval.expr = malloc(sizeof(regjit_expression_t));
-			yylval.expr->kind = REGJIT_EXPR_GROUP;
-			yylval.expr->args.body = $2;
+			$$ = malloc(sizeof(regjit_expression_t));
+			$$->kind = REGJIT_EXPR_GROUP;
+			$$->args.body = $2;
 		}
 	;
 
@@ -99,32 +100,32 @@ RepeatedExpression:
 		{
 			$2->expr = $1;
 			
-			yylval.expr = malloc(sizeof(regjit_expression_t));
-			yylval.expr->kind = REGJIT_EXPR_REPEAT;
-			yylval.expr->args.repeat = $2;
+			$$ = malloc(sizeof(regjit_expression_t));
+			$$->kind = REGJIT_EXPR_REPEAT;
+			$$->args.repeat = $2;
 		}
 	;
 
 Repetition:
 	  REPEAT_ANY
 		{
-			yylval.repetition = create_repetition(0, SIZE_MAX);
+			$$ = create_repetition(0, SIZE_MAX);
 		}
 	| REPEAT_ANYPOSITIVE
 		{
-			yylval.repetition = create_repetition(1, SIZE_MAX);
+			$$ = create_repetition(1, SIZE_MAX);
 		}
 	| REPEAT_OPEN NUMBER REPEAT_CLOSE
 		{
-			yylval.repetition = create_repetition($2, $2);
+			$$ = create_repetition($2, $2);
 		}
 	| REPEAT_OPEN NUMBER COMMA REPEAT_CLOSE
 		{
-			yylval.repetition = create_repetition($2, SIZE_MAX);
+			$$ = create_repetition($2, SIZE_MAX);
 		}
 	| REPEAT_OPEN NUMBER COMMA NUMBER REPEAT_CLOSE
 		{
-			yylval.repetition = create_repetition($2, $4);
+			$$ = create_repetition($2, $4);
 		}
 	;
 
