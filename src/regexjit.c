@@ -22,7 +22,6 @@ typedef struct
 
 struct regjit_regex
 {
-	jit_context_t jitContext;
 	jit_function_t func;
 	size_t groupCount;
 };
@@ -82,16 +81,19 @@ void regjit_compile_group(regjit_compilation_t *ctx, regjit_expression_t *expr)
 	size_t index = ctx->groupCount;
 	ctx->groupCount++;
 
+	size_t offset1 = index * sizeof(regjit_match_t);
+	size_t offset2 = offset1 + offsetof(regjit_match_t, end);
+
 	capturingDisabled = jit_label_undefined;
 	jit_insn_branch_if_not(ctx->func, ctx->groups, &capturingDisabled);
-	jit_insn_store_relative(ctx->func, ctx->groups, 2 * index, ctx->str);
+	jit_insn_store_relative(ctx->func, ctx->groups, offset1, ctx->str);
 	jit_insn_label(ctx->func, &capturingDisabled);
 
 	regjit_compile_expression_list(ctx, expr->args.body);
 
 	capturingDisabled = jit_label_undefined;
 	jit_insn_branch_if_not(ctx->func, ctx->groups, &capturingDisabled);
-	jit_insn_store_relative(ctx->func, ctx->groups, 2 * index + 1, ctx->str);
+	jit_insn_store_relative(ctx->func, ctx->groups, offset2, ctx->str);
 	jit_insn_label(ctx->func, &capturingDisabled);
 }
 
@@ -200,26 +202,22 @@ void regjit_compile_expression(regjit_compilation_t *ctx, regjit_expression_t *e
 	}
 }
 
-void regjit_compile_global(regjit_compilation_t *ctx, regjit_expr_list_t *expressions)
+void regjit_compile_global(regjit_compilation_t *ctx, regjit_expression_t *rootExpr)
 {
 	//TODO scan for the start of the regex in the string
 
-	regjit_compile_expression_list(ctx, expressions);
+	regjit_compile_expression(ctx, rootExpr);
 
 	jit_insn_return(ctx->func, const(ubyte, 1));
 
 	jit_insn_label(ctx->func, ctx->noMatch);
 	jit_insn_return(ctx->func, const(ubyte, 0));
-
-	jit_dump_function(stdout, ctx->func, "regex");
-	jit_function_compile(ctx->func);
-	jit_dump_function(stdout, ctx->func, "regex");
 }
 
 regjit_regex_t *regjit_compile(const char *expression, unsigned flags)
 {
-	regjit_expr_list_t *expressions = regjit_parse(expression);
-	if(!expressions)
+	regjit_expression_t *rootExpr = regjit_parse(expression);
+	if(!rootExpr)
 		return NULL;
 
 	jit_context_t context = jit_context_create();
@@ -238,46 +236,43 @@ regjit_regex_t *regjit_compile(const char *expression, unsigned flags)
 	ctx.groups = jit_value_get_param(ctx.func, 1);
 	ctx.groupCount = 0;
 
-	regjit_compile_global(&ctx, expressions);
+	regjit_compile_global(&ctx, rootExpr);
+
+	if(flags & REGJIT_FLAG_DEBUG)
+		jit_dump_function(stdout, ctx.func, "expression");
+
+	jit_function_compile(ctx.func);
+
+	if(flags & REGJIT_FLAG_DEBUG)
+		jit_dump_function(stdout, ctx.func, "expression");
 
 	regjit_regex_t *reg = malloc(sizeof(regjit_regex_t));
-	reg->jitContext = context;
 	reg->func = ctx.func;
 	reg->groupCount = ctx.groupCount;
 
 	return reg;
 }
 
-bool regjit_test(regjit_regex_t *reg, const char *text)
+void regjit_destroy(regjit_regex_t *reg)
 {
-	uint8_t ret;
-	char *matches = NULL;
-
-	void *args[] = {
-		&text,
-		&matches,
-	};
-
-	jit_function_apply(reg->func, args, &ret);
-
-	return ret != 0;
+	jit_context_t context = jit_function_get_context(reg->func);
+	jit_context_destroy(context);
+	free(reg);
 }
 
-regjit_match_t *regjit_match(regjit_regex_t *reg, const char *text)
+unsigned regjit_match_count(regjit_regex_t *reg)
+{
+	return reg->groupCount;
+}
+
+bool regjit_match(regjit_regex_t *reg, regjit_match_t *matches, const char *text)
 {
 	uint8_t ret;
-	char *matches = calloc(reg->groupCount, sizeof(regjit_match_t));
-
 	void *args[] = {
 		&text,
 		&matches,
 	};
 
 	jit_function_apply(reg->func, args, &ret);
-
-	if(ret != 0)
-		return matches;
-
-	free(matches);
-	return NULL;
+	return ret != 0;
 }

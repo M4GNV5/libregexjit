@@ -47,13 +47,17 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 %type <repetition> Repetition
 
 %start RootRule
-%parse-param {regjit_expr_list_t **result}
+%parse-param {regjit_expression_t **result}
 %%
 
 RootRule:
 	ExpressionList
 		{
-			*result = $1;
+			regjit_expression_t *expr = malloc(sizeof(regjit_expression_t));
+			expr->kind = REGJIT_EXPR_GROUP;
+			expr->args.body = $1;
+
+			*result = expr;
 		}
 	;
 

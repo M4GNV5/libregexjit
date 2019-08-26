@@ -39,11 +39,9 @@ range			\{[0-9]+,?[0-9]*\}
 
 %%
 
-regjit_expr_list_t *regjit_parse(const char *expression)
+regjit_expression_t *regjit_parse(const char *expression)
 {
-	regjit_expr_list_t *result = NULL;
-
-	printf("parsing '%s'\n", expression);
+	regjit_expression_t *result = NULL;
 
 	YY_BUFFER_STATE buffer = yy_scan_string(expression);
 

@@ -44,4 +44,4 @@ struct regjit_repeat
     size_t max;
 };
 
-regjit_expr_list_t *regjit_parse(const char *expression);
+regjit_expression_t *regjit_parse(const char *expression);
