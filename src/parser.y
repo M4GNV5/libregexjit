@@ -17,7 +17,6 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 %union
 {
 	const char *literal;
-	size_t number;
 	regjit_expression_t *expr;
 	regjit_expr_list_t *exprlist;
 	regjit_repeat_t *repetition;
@@ -26,6 +25,7 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 %define parse.error verbose
 
 %token <literal> LITERAL
+%token <repetition> REPEAT_RANGE
 %token OR
 %token CHARSET_OPEN
 %token CHARSET_CLOSE
@@ -35,7 +35,6 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 %token REPEAT_ANYPOSITIVE
 %token REPEAT_OPEN
 %token REPEAT_CLOSE
-%token <number> NUMBER
 %token COMMA
 
 %type <expr> Expression
@@ -143,17 +142,9 @@ Repetition:
 		{
 			$$ = create_repetition(1, SIZE_MAX);
 		}
-	| REPEAT_OPEN NUMBER REPEAT_CLOSE
+	| REPEAT_RANGE
 		{
-			$$ = create_repetition($2, $2);
-		}
-	| REPEAT_OPEN NUMBER COMMA REPEAT_CLOSE
-		{
-			$$ = create_repetition($2, SIZE_MAX);
-		}
-	| REPEAT_OPEN NUMBER COMMA NUMBER REPEAT_CLOSE
-		{
-			$$ = create_repetition($2, $4);
+			$$ = $1;
 		}
 	;
 

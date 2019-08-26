@@ -5,6 +5,7 @@
 %}
 
 literal			[_a-zA-Z0-9]+
+range			\{\d+(,(\d+)?)?\}
 
 %%
 
@@ -18,6 +19,20 @@ literal			[_a-zA-Z0-9]+
 "{"				return(REPEAT_OPEN);
 "}"				return(REPEAT_CLOSE);
 
+{range} {
+	char *end;
+	yylval.repetition = malloc(sizeof(regjit_repeat_t));
+	yylval.repetition->min = strtoll(yytext + 1, &end, 10);
+
+	if(end[0] == '}')
+		yylval.repetition->max = yylval.repetition->min;
+	else if(end[0] == ',' && end[1] == '}')
+		yylval.repetition->max = SIZE_MAX;
+	else
+		yylval.repetition->max = strtoll(end + 1, NULL, 10);
+
+	return(REPEAT_RANGE);
+}
 {literal} {
 	yylval.literal = malloc(strlen(yytext) + 1);
 	strcpy((char *)yylval.literal, yytext);

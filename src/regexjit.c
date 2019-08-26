@@ -58,13 +58,12 @@ void regjit_compile_const(regjit_compilation_t *ctx, regjit_expression_t *expr)
 			if(size == 8)
 				tmp2 = constl(ulong, *(uint64_t *)(literal + offset));
 			else if(size == 4)
-				tmp2 = jit_value_create_nint_constant(ctx->func, type, *(uint32_t *)(literal + offset));
+				tmp2 = const(nuint, *(uint32_t *)(literal + offset));
 			else if(size == 2)
-				tmp2 = jit_value_create_nint_constant(ctx->func, type, *(uint16_t *)(literal + offset));
+				tmp2 = const(nuint, *(uint16_t *)(literal + offset));
 			else if(size == 1)
-				tmp2 = jit_value_create_nint_constant(ctx->func, type, *(uint8_t *)(literal + offset));
+				tmp2 = const(nuint, *(uint8_t *)(literal + offset));
 
-			printf("size = %d | tmp1 = %p | tmp2 = %p\n", i, tmp1, tmp2);
 			tmp1 = jit_insn_eq(ctx->func, tmp1, tmp2);
 			jit_insn_branch_if_not(ctx->func, tmp1, ctx->noMatch);
 
