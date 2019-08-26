@@ -126,7 +126,7 @@ RepeatedExpression:
 	Expression Repetition
 		{
 			$2->expr = $1;
-			
+
 			$$ = malloc(sizeof(regjit_expression_t));
 			$$->kind = REGJIT_EXPR_REPEAT;
 			$$->args.repeat = $2;

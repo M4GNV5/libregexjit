@@ -5,7 +5,7 @@
 %}
 
 literal			[_a-zA-Z0-9]+
-range			\{\d+(,(\d+)?)?\}
+range			\{[0-9]+,?[0-9]*\}
 
 %%
 
@@ -16,8 +16,6 @@ range			\{\d+(,(\d+)?)?\}
 ")"				return(GROUP_CLOSE);
 "["				return(CHARSET_OPEN);
 "]"				return(CHARSET_CLOSE);
-"{"				return(REPEAT_OPEN);
-"}"				return(REPEAT_CLOSE);
 
 {range} {
 	char *end;
