@@ -1,0 +1,43 @@
+# RegexJIT Library
+
+This library compiles regular expressions during runtime just in time (JIT).
+This allows them run faster than with regular libraries while still allowing
+dynamic regular expression in contrast to compile time compiled regular
+expressions.
+
+## Usage
+
+```C
+regjit_regex_t *regjit_compile(const char *expression, unsigned flags);
+void regjit_destroy(regjit_regex_t *reg);
+```
+compile and destroy regular expressions
+
+```C
+unsigned regjit_match_count(regjit_regex_t *reg);
+bool regjit_match(regjit_regex_t *reg, regjit_match_t *matches, const char *text);
+```
+Match a regular expression to a text. `matches` should either be NULL, or an array
+which can hold at least `rejit_match_count(reg)` elements.
+The function returns `true` when the regular expression successfully matched or
+`false` when not. In the latter case the contents of `matches` are invalid.
+
+## Example
+
+```C
+void foo()
+{
+	regjit_regex_t *reg = regjit_compile("http://(.+)", 0);
+	if(reg == NULL)
+		return;
+
+	size_t count = regjit_match_count(reg);
+	regjit_match_t matches[count];
+
+	if(!regjit_match(reg, matches, "the url is http://m4gnus.de, as you should know"))
+		return;
+
+	size_t len = matches[1].end - matches[1].start;
+	printf("found url: %.*s\n", len, matches[1].start);
+}
+```
