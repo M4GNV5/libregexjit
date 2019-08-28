@@ -12,6 +12,15 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 
 	return repeat;
 }
+
+regjit_expression_t *create_charset_expression(const regjit_charset_t *charset)
+{
+	regjit_expression_t *expr = malloc(sizeof(regjit_expression_t));
+	expr->kind = REGJIT_EXPR_CHARSET;
+	expr->args.charset = charset;
+
+	return expr;
+}
 %}
 
 %union
@@ -29,6 +38,13 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 %token OR
 %token CHARSET_OPEN
 %token CHARSET_CLOSE
+%token CHARSET_ALL
+%token CHARSET_DIGITS
+%token CHARSET_NON_DIGITS
+%token CHARSET_WHITESPACE
+%token CHARSET_NON_WHITESPACE
+%token CHARSET_ALPHANUMERIC
+%token CHARSET_NON_ALPHANUMERIC
 %token GROUP_OPEN
 %token GROUP_CLOSE
 %token REPEAT_ANY
@@ -92,11 +108,39 @@ Constant:
 	;
 
 Charset:
-	CHARSET_OPEN LITERAL CHARSET_CLOSE
+	  CHARSET_OPEN LITERAL CHARSET_CLOSE
 		{
 			$$ = malloc(sizeof(regjit_expression_t));
 			$$->kind = REGJIT_EXPR_CHARSET;
 			/* TODO parse $2 */
+		}
+	| CHARSET_ALL
+		{
+			$$ = create_charset_expression(&regjit_charset_all);
+		}
+	| CHARSET_DIGITS
+		{
+			$$ = create_charset_expression(&regjit_charset_digits);
+		}
+	| CHARSET_NON_DIGITS
+		{
+			$$ = create_charset_expression(&regjit_charset_non_digits);
+		}
+	| CHARSET_WHITESPACE
+		{
+			$$ = create_charset_expression(&regjit_charset_whitespace);
+		}
+	| CHARSET_NON_WHITESPACE
+		{
+			$$ = create_charset_expression(&regjit_charset_non_whitespace);
+		}
+	| CHARSET_ALPHANUMERIC
+		{
+			$$ = create_charset_expression(&regjit_charset_word);
+		}
+	| CHARSET_NON_ALPHANUMERIC
+		{
+			$$ = create_charset_expression(&regjit_charset_non_word);
 		}
 	;
 

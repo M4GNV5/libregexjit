@@ -10,6 +10,7 @@ PARSER_SRC += $(BIN)/lexer.c
 
 OBJECTS += $(BIN)/parser.o
 OBJECTS += $(BIN)/tokens.o
+OBJECTS += $(BIN)/constants.o
 OBJECTS += $(BIN)/regexjit.o
 
 RESULT += bin/libregexjit.a

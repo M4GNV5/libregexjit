@@ -16,6 +16,13 @@ range			\{[0-9]+,?[0-9]*\}
 ")"				return(GROUP_CLOSE);
 "["				return(CHARSET_OPEN);
 "]"				return(CHARSET_CLOSE);
+"."				return(CHARSET_ALL);
+"\\d"			return(CHARSET_DIGITS);
+"\\D"			return(CHARSET_NON_DIGITS);
+"\\s"			return(CHARSET_WHITESPACE);
+"\\S"			return(CHARSET_NON_WHITESPACE);
+"\\w"			return(CHARSET_ALPHANUMERIC);
+"\\w"			return(CHARSET_NON_ALPHANUMERIC);
 
 {range} {
 	char *end;
