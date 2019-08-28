@@ -4,7 +4,7 @@
 #include "parser.h"
 %}
 
-literal			[_a-zA-Z0-9]+
+literal			([^\|\*\+\(\)\[\]]|\\.)+
 range			\{[0-9]+,?[0-9]*\}
 
 %%
@@ -40,6 +40,7 @@ range			\{[0-9]+,?[0-9]*\}
 }
 {literal} {
 	yylval.literal = malloc(strlen(yytext) + 1);
+	//TODO handle escapes
 	strcpy((char *)yylval.literal, yytext);
 	return(LITERAL);
 }
