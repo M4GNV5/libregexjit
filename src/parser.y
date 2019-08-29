@@ -110,9 +110,24 @@ Constant:
 Charset:
 	  CHARSET_OPEN LITERAL CHARSET_CLOSE
 		{
+			regjit_charset_t *charset = malloc(sizeof(regjit_charset_t));
+			if($2[0] == '^')
+			{
+				charset->inverted = true;
+				charset->whitelist = $2 + 1;
+			}
+			else
+			{
+				charset->inverted = true;
+				charset->whitelist = $2;
+			}
+
+			/* TODO parse ranges */
+			charset->ranges = NULL;
+
 			$$ = malloc(sizeof(regjit_expression_t));
 			$$->kind = REGJIT_EXPR_CHARSET;
-			/* TODO parse $2 */
+			$$->args.charset = charset;
 		}
 	| CHARSET_ALL
 		{
