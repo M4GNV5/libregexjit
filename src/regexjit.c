@@ -100,6 +100,7 @@ void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr
 	{
 		const char *whitelist = charset->whitelist;
 		size_t len = strlen(whitelist);
+		jit_value_t mask32;
 		jit_value_t mask;
 
 		if(len >= 8)
@@ -109,6 +110,18 @@ void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr
 			{
 				tmp = jit_insn_shl(ctx->func, mask, constl(ulong, i));
 				mask = jit_insn_or(ctx->func, tmp, mask);
+
+				if(i == 16)
+					mask32 = mask;
+			}
+		}
+		else if(len >= 4)
+		{
+			mask32 = jit_insn_convert(ctx->func, input, jit_type_uint, 0);
+			for(int i = 8; i <= 32; i *= 2)
+			{
+				tmp = jit_insn_shl(ctx->func, mask32, const(uint, i));
+				mask32 = jit_insn_or(ctx->func, tmp, mask32);
 			}
 		}
 
@@ -125,6 +138,21 @@ void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr
 
 			whitelist += 8;
 			len -= 8;
+		}
+
+		while(len >= 4)
+		{
+			jit_value_t chunk = const(uint, *(uint32_t *)whitelist);
+			tmp = jit_insn_xor(ctx->func, chunk, mask32);
+			tmp = jit_insn_add(ctx->func, tmp, const(uint, 0x7f7f7f7f));
+
+			jit_value_t holes = const(uint, 0x80808080);
+			tmp = jit_insn_and(ctx->func, tmp, holes);
+			tmp = jit_insn_ne(ctx->func, tmp, holes);
+			jit_insn_branch_if(ctx->func, tmp, foundMatchingChar);
+
+			whitelist += 4;
+			len -= 4;
 		}
 
 		while(len > 0)
