@@ -98,15 +98,20 @@ void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr
 
 	if(charset->whitelist)
 	{
-		jit_value_t mask = jit_insn_convert(ctx->func, input, jit_type_ulong, 0);
-		for(int i = 8; i <= 32; i *= 2)
-		{
-			tmp = jit_insn_shl(ctx->func, mask, constl(ulong, i));
-			mask = jit_insn_or(ctx->func, tmp, mask);
-		}
-
 		const char *whitelist = charset->whitelist;
 		size_t len = strlen(whitelist);
+		jit_value_t mask;
+
+		if(len >= 8)
+		{
+			mask = jit_insn_convert(ctx->func, input, jit_type_ulong, 0);
+			for(int i = 8; i <= 32; i *= 2)
+			{
+				tmp = jit_insn_shl(ctx->func, mask, constl(ulong, i));
+				mask = jit_insn_or(ctx->func, tmp, mask);
+			}
+		}
+
 		while(len >= 8)
 		{
 			jit_value_t chunk = constl(ulong, *(uint64_t *)whitelist);
@@ -125,7 +130,7 @@ void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr
 		while(len > 0)
 		{
 			tmp = jit_insn_eq(ctx->func, input, const(uint, *whitelist));
-			jit_insn_branch_if(ctx->func, tmp, &doesMatch);
+			jit_insn_branch_if(ctx->func, tmp, foundMatchingChar);
 
 			whitelist++;
 			len--;

@@ -118,7 +118,7 @@ Charset:
 			}
 			else
 			{
-				charset->inverted = true;
+				charset->inverted = false;
 				charset->whitelist = $2;
 			}
 
