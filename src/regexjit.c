@@ -38,6 +38,23 @@ void regjit_compile_const(regjit_compilation_t *ctx, regjit_expression_t *expr)
 	jit_value_t tmp1;
 	jit_value_t tmp2;
 
+	if(len < 4)
+	{
+		while(len > 0)
+		{
+			tmp1 = jit_insn_load_relative(ctx->func, ctx->str, offset, jit_type_ubyte);
+			tmp1 = jit_insn_eq(ctx->func, tmp1, const(ubyte, literal[offset]));
+			jit_insn_branch_if_not(ctx->func, tmp1, ctx->noMatch);
+
+			offset++;
+			len--;
+		}
+
+		tmp1 = jit_insn_add(ctx->func, ctx->str, const(nuint, offset));
+		jit_insn_store(ctx->func, ctx->str, tmp1);
+		return;
+	}
+
 	//check if we would exceed the end of the string
 	tmp1 = jit_insn_add(ctx->func, ctx->str, const(nuint, len));
 	tmp1 = jit_insn_gt(ctx->func, tmp1, ctx->strEnd);
