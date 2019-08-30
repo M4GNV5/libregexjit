@@ -48,7 +48,8 @@ regjit_expression_t *create_charset_expression(const regjit_charset_t *charset)
 %token GROUP_OPEN
 %token GROUP_CLOSE
 %token REPEAT_ANY
-%token REPEAT_ANYPOSITIVE
+%token REPEAT_AT_LEAST_ONCE
+%token REPEAT_AT_MOST_ONCE
 %token REPEAT_OPEN
 %token REPEAT_CLOSE
 %token COMMA
@@ -201,9 +202,13 @@ Repetition:
 		{
 			$$ = create_repetition(0, SIZE_MAX);
 		}
-	| REPEAT_ANYPOSITIVE
+	| REPEAT_AT_LEAST_ONCE
 		{
 			$$ = create_repetition(1, SIZE_MAX);
+		}
+	| REPEAT_AT_MOST_ONCE
+		{
+			$$ = create_repetition(0, 1);
 		}
 	| REPEAT_RANGE
 		{
