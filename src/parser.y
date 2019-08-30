@@ -64,6 +64,8 @@ regjit_expression_t *create_charset_expression(const regjit_charset_t *charset)
 %type <exprlist> ExpressionList
 %type <repetition> Repetition
 
+%right OR
+
 %start RootRule
 %parse-param {regjit_expression_t **result}
 %%
@@ -179,17 +181,29 @@ Group:
 OrExpression:
 	Expression OR Expression
 		{
-			regjit_expr_list_t *right = malloc(sizeof(regjit_expr_list_t));
-			right->expr = $3;
-			right->next = NULL;
-
 			regjit_expr_list_t *left = malloc(sizeof(regjit_expr_list_t));
 			left->expr = $1;
-			left->next = right;
 
-			$$ = malloc(sizeof(regjit_expression_t));
-			$$->kind = REGJIT_EXPR_OR;
-			$$->args.body = left;
+			if($3->kind == REGJIT_EXPR_OR)
+			{
+				left->next = $3->args.body;
+				$3->args.body = left;
+
+				$$ = $3;
+			}
+			else
+			{
+
+				regjit_expr_list_t *right = malloc(sizeof(regjit_expr_list_t));
+				right->expr = $3;
+				right->next = NULL;
+
+				left->next = right;
+
+				$$ = malloc(sizeof(regjit_expression_t));
+				$$->kind = REGJIT_EXPR_OR;
+				$$->args.body = left;
+			}
 		}
 	;
 

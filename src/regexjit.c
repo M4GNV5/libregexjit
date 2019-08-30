@@ -247,11 +247,12 @@ void regjit_compile_or(regjit_compilation_t *ctx, regjit_expression_t *expr)
 {
 	regjit_expr_list_t *curr = expr->args.body;
 	jit_label_t *globalNoMatch = ctx->noMatch;
+	jit_label_t didMatch = jit_label_undefined;
 
+	jit_value_t orginalStr = ctx->str;
 	while(curr != NULL)
 	{
-		jit_value_t orginalStr = ctx->str;
-		ctx->str = jit_insn_dup(ctx->func, ctx->str);
+		ctx->str = jit_insn_dup(ctx->func, orginalStr);
 
 		jit_label_t noMatch = jit_label_undefined;
 		if(curr->next != NULL)
@@ -261,10 +262,16 @@ void regjit_compile_or(regjit_compilation_t *ctx, regjit_expression_t *expr)
 
 		regjit_compile_expression(ctx, curr->expr);
 
-		jit_insn_label(ctx->func, &noMatch);
-		ctx->str = orginalStr;
+		jit_insn_store(ctx->func, orginalStr, ctx->str);
+		jit_insn_branch(ctx->func, &didMatch);
+
+		if(ctx != NULL)
+			jit_insn_label(ctx->func, &noMatch);
 		curr = curr->next;
 	}
+
+	jit_insn_label(ctx->func, &didMatch);
+	ctx->str = orginalStr;
 }
 
 void regjit_compile_repeat(regjit_compilation_t *ctx, regjit_expression_t *expr)
