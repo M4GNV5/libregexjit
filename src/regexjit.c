@@ -14,6 +14,7 @@ typedef struct
 {
 	jit_function_t func;
 	jit_value_t str;
+	jit_value_t strEnd;
 	jit_label_t *noMatch;
 
 	jit_value_t groups;
@@ -36,6 +37,11 @@ void regjit_compile_const(regjit_compilation_t *ctx, regjit_expression_t *expr)
 	size_t offset = 0;
 	jit_value_t tmp1;
 	jit_value_t tmp2;
+
+	//check if we would exceed the end of the string
+	tmp1 = jit_insn_add(ctx->func, ctx->str, const(nuint, len));
+	tmp1 = jit_insn_gt(ctx->func, tmp1, ctx->strEnd);
+	jit_insn_branch_if(ctx->func, tmp1, ctx->noMatch);
 
 	int sizes[] = {8, 4, 2, 1};
 	jit_type_t types[] = {
@@ -81,6 +87,25 @@ void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr
 	const regjit_charset_t *charset = expr->args.charset;
 	jit_value_t input = jit_insn_load_relative(ctx->func, ctx->str, 0, jit_type_ubyte);
 	jit_label_t doesMatch = jit_label_undefined;
+
+	tmp = jit_insn_eq(ctx->func, input, const(ubyte, 0));
+	jit_insn_branch_if(ctx->func, tmp, ctx->noMatch);
+
+	// special case for charsets that matches everything (i.e. '.')
+	if(charset->ranges == NULL && charset->whitelist == NULL)
+	{
+		if(charset->inverted)
+		{
+			jit_insn_branch(ctx->func, ctx->noMatch);
+		}
+		else
+		{
+			tmp = jit_insn_add(ctx->func, ctx->str, const(nuint, 1));
+			jit_insn_store(ctx->func, ctx->str, tmp);
+		}
+
+		return;
+	}
 
 	jit_label_t *foundMatchingChar;
 	if(charset->inverted)
@@ -328,16 +353,18 @@ regjit_regex_t *regjit_compile(const char *expression, unsigned flags)
 
 	jit_type_t args[] = {
 		jit_type_void_ptr, // text
+		jit_type_void_ptr, // textEnd
 		jit_type_void_ptr, // matches
 	};
-	jit_type_t signature = jit_type_create_signature(jit_abi_cdecl, jit_type_ubyte, args, 2, 0);
+	jit_type_t signature = jit_type_create_signature(jit_abi_cdecl, jit_type_ubyte, args, 3, 0);
 
 	jit_label_t noMatch = jit_label_undefined;
 	regjit_compilation_t ctx;
 	ctx.func = jit_function_create(context, signature);
 	ctx.str = jit_value_get_param(ctx.func, 0);
+	ctx.strEnd = jit_value_get_param(ctx.func, 1);
 	ctx.noMatch = &noMatch;
-	ctx.groups = jit_value_get_param(ctx.func, 1);
+	ctx.groups = jit_value_get_param(ctx.func, 2);
 	ctx.groupCount = 0;
 
 	regjit_compile_global(&ctx, rootExpr);
@@ -382,9 +409,12 @@ unsigned regjit_match_count(regjit_regex_t *reg)
 
 bool regjit_match(regjit_regex_t *reg, regjit_match_t *matches, const char *text)
 {
+	const char *textEnd = text + strlen(text);
+
 	uint8_t ret;
 	void *args[] = {
 		&text,
+		&textEnd,
 		&matches,
 	};
 
