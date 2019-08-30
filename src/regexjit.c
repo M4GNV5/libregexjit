@@ -118,7 +118,7 @@ void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr
 		else if(len >= 4)
 		{
 			mask32 = jit_insn_convert(ctx->func, input, jit_type_uint, 0);
-			for(int i = 8; i <= 32; i *= 2)
+			for(int i = 8; i <= 16; i *= 2)
 			{
 				tmp = jit_insn_shl(ctx->func, mask32, const(uint, i));
 				mask32 = jit_insn_or(ctx->func, tmp, mask32);
@@ -342,13 +342,24 @@ regjit_regex_t *regjit_compile(const char *expression, unsigned flags)
 
 	regjit_compile_global(&ctx, rootExpr);
 
+	char *name;
 	if(flags & REGJIT_FLAG_DEBUG)
-		jit_dump_function(stdout, ctx.func, "expression");
+	{
+		name = malloc(strlen(expression) + strlen("regexp('')") + 1);
+		sprintf(name, "regexp('%s')", expression);
+
+		jit_dump_function(stdout, ctx.func, name);
+		jit_function_optimize(ctx.func);
+		jit_dump_function(stdout, ctx.func, name);
+	}
 
 	jit_function_compile(ctx.func);
 
 	if(flags & REGJIT_FLAG_DEBUG)
-		jit_dump_function(stdout, ctx.func, "expression");
+	{
+		jit_dump_function(stdout, ctx.func, name);
+		free(name);
+	}
 
 	regjit_regex_t *reg = malloc(sizeof(regjit_regex_t));
 	reg->func = ctx.func;
