@@ -35,13 +35,14 @@ typedef struct
 		REGJIT_EXPR_OR,
 		REGJIT_EXPR_REPEAT,
 		REGJIT_EXPR_GROUP,
+		REGJIT_EXPR_EXPRLIST,
 	} kind;
 	union
 	{
 		const char *literal;
 		const regjit_charset_t *charset;
 		regjit_expr_list_t *body;
-        regjit_repeat_t *repeat;
+		regjit_repeat_t *repeat;
 	} args;
 } regjit_expression_t;
 
@@ -53,9 +54,9 @@ struct regjit_expr_list
 
 struct regjit_repeat
 {
-    regjit_expression_t *expr;
-    size_t min;
-    size_t max;
+	regjit_expression_t *expr;
+	size_t min;
+	size_t max;
 };
 
 regjit_expression_t *regjit_parse(const char *expression);

@@ -45,6 +45,7 @@ regjit_expression_t *create_charset_expression(const regjit_charset_t *charset)
 %token CHARSET_NON_WHITESPACE
 %token CHARSET_ALPHANUMERIC
 %token CHARSET_NON_ALPHANUMERIC
+%token GROUP_OPEN_NOMATCH
 %token GROUP_OPEN
 %token GROUP_CLOSE
 %token REPEAT_ANY
@@ -161,10 +162,16 @@ Charset:
 	;
 
 Group:
-	GROUP_OPEN ExpressionList GROUP_CLOSE
+	  GROUP_OPEN ExpressionList GROUP_CLOSE
 		{
 			$$ = malloc(sizeof(regjit_expression_t));
 			$$->kind = REGJIT_EXPR_GROUP;
+			$$->args.body = $2;
+		}
+	| GROUP_OPEN_NOMATCH ExpressionList GROUP_CLOSE
+		{
+			$$ = malloc(sizeof(regjit_expression_t));
+			$$->kind = REGJIT_EXPR_EXPRLIST;
 			$$->args.body = $2;
 		}
 	;
@@ -189,11 +196,46 @@ OrExpression:
 RepeatedExpression:
 	Expression Repetition
 		{
-			$2->expr = $1;
+			regjit_expression_t *repeatExpr = malloc(sizeof(regjit_expression_t));
+			repeatExpr->kind = REGJIT_EXPR_REPEAT;
+			repeatExpr->args.repeat = $2;
 
-			$$ = malloc(sizeof(regjit_expression_t));
-			$$->kind = REGJIT_EXPR_REPEAT;
-			$$->args.repeat = $2;
+			/* when the repeated expression is a literal in fact only the last
+			   character is repeated, thus here we return an expression list
+			   containing the literal without the last character and a
+			   repetition of a literal only containing the last character */
+			if($1->kind == REGJIT_EXPR_CONST && $1->args.literal[1] != 0)
+			{
+				char *literal = (char *)$1->args.literal;
+				size_t len = strlen(literal);
+				char last = literal[len - 1];
+				literal[len - 1] = 0;
+
+				literal = malloc(2);
+				literal[0] = last;
+				literal[1] = 0;
+
+				$2->expr = malloc(sizeof(regjit_expression_t));
+				$2->expr->kind = REGJIT_EXPR_CONST;
+				$2->expr->args.literal = literal;
+
+				$$ = malloc(sizeof(regjit_expression_t));
+				$$->kind = REGJIT_EXPR_EXPRLIST;
+
+				regjit_expr_list_t *curr = malloc(sizeof(regjit_expr_list_t));
+				curr->expr = $1;
+				curr->next = malloc(sizeof(regjit_expr_list_t));
+				$$->args.body = curr;
+
+				curr = curr->next;
+				curr->expr = repeatExpr;
+				curr->next = NULL;
+			}
+			else
+			{
+				$2->expr = $1;
+				$$ = repeatExpr;
+			}
 		}
 	;
 

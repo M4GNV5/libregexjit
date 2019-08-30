@@ -13,6 +13,7 @@ range			\{[0-9]+,?[0-9]*\}
 "*"				return(REPEAT_ANY);
 "+"				return(REPEAT_AT_LEAST_ONCE);
 "?"				return(REPEAT_AT_MOST_ONCE);
+"(?:"			return(GROUP_OPEN_NOMATCH);
 "("				return(GROUP_OPEN);
 ")"				return(GROUP_CLOSE);
 "["				return(CHARSET_OPEN);

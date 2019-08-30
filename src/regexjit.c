@@ -134,7 +134,7 @@ void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr
 	for(; range != NULL; range = range->next)
 	{
 		tmp = jit_insn_sub(ctx->func, input, const(ubyte, range->min));
-		tmp = jit_insn_le(ctx->func, tmp, const(ubyte, range->max));
+		tmp = jit_insn_le(ctx->func, tmp, const(ubyte, range->max - range->min));
 		jit_insn_branch_if(ctx->func, tmp, foundMatchingChar);
 	}
 
@@ -344,6 +344,10 @@ void regjit_compile_expression(regjit_compilation_t *ctx, regjit_expression_t *e
 
 		case REGJIT_EXPR_REPEAT:
 			regjit_compile_repeat(ctx, expr);
+			break;
+
+		case REGJIT_EXPR_EXPRLIST:
+			regjit_compile_expression_list(ctx, expr->args.body);
 			break;
 	}
 }
