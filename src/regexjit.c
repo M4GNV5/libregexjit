@@ -24,6 +24,7 @@ typedef struct
 struct regjit_regex
 {
 	jit_function_t func;
+	uint8_t (*closure)(const char *str, const char *strEnd, regjit_match_t *matches);
 	size_t groupCount;
 };
 
@@ -418,6 +419,7 @@ regjit_regex_t *regjit_compile(const char *expression, unsigned flags)
 
 	regjit_regex_t *reg = malloc(sizeof(regjit_regex_t));
 	reg->func = ctx.func;
+	reg->closure = jit_function_to_closure(ctx.func);
 	reg->groupCount = ctx.groupCount;
 
 	return reg;
@@ -435,17 +437,38 @@ unsigned regjit_match_count(regjit_regex_t *reg)
 	return reg->groupCount;
 }
 
+bool regjit_match_single(regjit_regex_t *reg, regjit_match_t *matches, const char *text, const char *textEnd)
+{
+	uint8_t ret;
+
+	if(reg->closure != NULL)
+	{
+		ret = reg->closure(text, textEnd, matches);
+	}
+	else
+	{
+		void *args[] = {
+			&text,
+			&textEnd,
+			&matches,
+		};
+
+		jit_function_apply(reg->func, args, &ret);
+	}
+
+	return ret != 0;
+}
+
 bool regjit_match(regjit_regex_t *reg, regjit_match_t *matches, const char *text)
 {
 	const char *textEnd = text + strlen(text);
 
-	uint8_t ret;
-	void *args[] = {
-		&text,
-		&textEnd,
-		&matches,
-	};
+	while(text < textEnd)
+	{
+		if(regjit_match_single(reg, matches, text, textEnd))
+			return true;
+		text++;
+	}
 
-	jit_function_apply(reg->func, args, &ret);
-	return ret != 0;
+	return false;
 }
