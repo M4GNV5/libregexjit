@@ -183,7 +183,7 @@ void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr
 			len -= 8;
 		}
 
-		while(len >= 4)
+		if(len >= 4)
 		{
 			jit_value_t chunk = const(uint, *(uint32_t *)whitelist);
 			tmp = jit_insn_xor(ctx->func, chunk, mask32);
@@ -362,8 +362,6 @@ void regjit_compile_expression(regjit_compilation_t *ctx, regjit_expression_t *e
 
 void regjit_compile_global(regjit_compilation_t *ctx, regjit_expression_t *rootExpr)
 {
-	//TODO scan for the start of the regex in the string
-
 	regjit_compile_expression(ctx, rootExpr);
 
 	jit_insn_return(ctx->func, const(ubyte, 1));

@@ -5,6 +5,7 @@
 %}
 
 literal			([^\|\*\+\?\(\)\[\]\{\}\.]|\\.)+
+charset			\[[^\]]+\]
 range			\{[0-9]+,?[0-9]*\}
 
 %%
@@ -16,8 +17,6 @@ range			\{[0-9]+,?[0-9]*\}
 "(?:"			return(GROUP_OPEN_NOMATCH);
 "("				return(GROUP_OPEN);
 ")"				return(GROUP_CLOSE);
-"["				return(CHARSET_OPEN);
-"]"				return(CHARSET_CLOSE);
 "."				return(CHARSET_ALL);
 "\\d"			return(CHARSET_DIGITS);
 "\\D"			return(CHARSET_NON_DIGITS);
@@ -40,10 +39,21 @@ range			\{[0-9]+,?[0-9]*\}
 
 	return(REPEAT_RANGE);
 }
-{literal} {
-	yylval.literal = malloc(strlen(yytext) + 1);
+{charset} {
+	size_t len = strlen(yytext) - 2;
+	char *str = malloc(len + 1);
+	memcpy(str, yytext + 1, len);
+	str[len] = 0;
+
 	//TODO handle escapes
-	strcpy((char *)yylval.literal, yytext);
+	yylval.literal = str;
+	return(CHARSET_CUSTOM);
+}
+{literal} {
+	size_t len = strlen(yytext) + 1;
+	yylval.literal = malloc(len);
+	//TODO handle escapes
+	memcpy((char *)yylval.literal, yytext, len);
 	return(LITERAL);
 }
 

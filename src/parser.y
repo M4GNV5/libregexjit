@@ -34,10 +34,9 @@ regjit_expression_t *create_charset_expression(const regjit_charset_t *charset)
 %define parse.error verbose
 
 %token <literal> LITERAL
+%token <literal> CHARSET_CUSTOM
 %token <repetition> REPEAT_RANGE
 %token OR
-%token CHARSET_OPEN
-%token CHARSET_CLOSE
 %token CHARSET_ALL
 %token CHARSET_DIGITS
 %token CHARSET_NON_DIGITS
@@ -112,22 +111,51 @@ Constant:
 	;
 
 Charset:
-	  CHARSET_OPEN LITERAL CHARSET_CLOSE
+	  CHARSET_CUSTOM
 		{
 			regjit_charset_t *charset = malloc(sizeof(regjit_charset_t));
-			if($2[0] == '^')
+			charset->ranges = NULL;
+			const char *str = $1;
+			char *whitelist = (char *)$1;
+
+			if(str[0] == '^')
 			{
 				charset->inverted = true;
-				charset->whitelist = $2 + 1;
+				str++;
 			}
 			else
 			{
 				charset->inverted = false;
-				charset->whitelist = $2;
 			}
 
-			/* TODO parse ranges */
-			charset->ranges = NULL;
+			while(*str)
+			{
+				if(str[1] == '-' && str[2] != 0)
+				{
+					regjit_charset_range_t *range = malloc(sizeof(regjit_charset_range_t));
+					range->min = str[0];
+					range->max = str[2];
+					range->next = charset->ranges;
+
+					charset->ranges = range;
+					str += 3;
+				}
+				else
+				{
+					*whitelist++ = *str++;
+				}
+			}
+
+			if(whitelist == $1)
+			{
+				free(whitelist);
+				charset->whitelist = NULL;
+			}
+			else
+			{
+				*whitelist++ = 0;
+				charset->whitelist = $1;
+			}
 
 			$$ = malloc(sizeof(regjit_expression_t));
 			$$->kind = REGJIT_EXPR_CHARSET;
