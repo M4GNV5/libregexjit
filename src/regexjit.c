@@ -13,7 +13,10 @@
 typedef struct
 {
 	jit_function_t func;
+	unsigned flags;
+
 	jit_value_t str;
+	jit_value_t strStart;
 	jit_value_t strEnd;
 	jit_label_t *noMatch;
 
@@ -24,8 +27,10 @@ typedef struct
 struct regjit_regex
 {
 	jit_function_t func;
-	uint8_t (*closure)(const char *str, const char *strEnd, regjit_match_t *matches);
+	uint8_t (*closure)(const char *str, const char *strStart, const char *strEnd,
+		regjit_match_t *matches);
 	size_t groupCount;
+	unsigned flags;
 };
 
 void regjit_compile_expression(regjit_compilation_t *ctx, regjit_expression_t *expr);
@@ -275,6 +280,56 @@ void regjit_compile_or(regjit_compilation_t *ctx, regjit_expression_t *expr)
 	ctx->str = orginalStr;
 }
 
+void regjit_compile_line_start(regjit_compilation_t *ctx, regjit_expression_t *expr)
+{
+	if(!(ctx->flags & REGJIT_FLAG_MULTILINE))
+		ctx->flags |= REGJIT_FLAG_MATCHES_START;
+
+	jit_value_t tmp;
+	tmp = jit_insn_eq(ctx->func, ctx->str, ctx->strStart);
+
+	if(ctx->flags & REGJIT_FLAG_MULTILINE)
+	{
+		jit_label_t doesMatch = jit_label_undefined;
+
+		jit_insn_branch_if(ctx->func, tmp, &doesMatch);
+
+		tmp = jit_insn_load_relative(ctx->func, ctx->str, -1, jit_type_ubyte);
+		tmp = jit_insn_eq(ctx->func, tmp, const(ubyte, '\n'));
+		jit_insn_branch_if_not(ctx->func, tmp, ctx->noMatch);
+
+		jit_insn_label(ctx->func, &doesMatch);
+	}
+	else
+	{
+		jit_insn_branch_if_not(ctx->func, tmp, ctx->noMatch);
+	}
+}
+
+void regjit_compile_line_end(regjit_compilation_t *ctx, regjit_expression_t *expr)
+{
+	jit_value_t tmp;
+	jit_value_t curr = jit_insn_load_relative(ctx->func, ctx->str, 0, jit_type_ubyte);
+
+	if(ctx->flags & REGJIT_FLAG_MULTILINE)
+	{
+		jit_label_t doesMatch = jit_label_undefined;
+
+		tmp = jit_insn_eq(ctx->func, curr, const(ubyte, '\n'));
+		jit_insn_branch_if(ctx->func, tmp, &doesMatch);
+
+		tmp = jit_insn_eq(ctx->func, curr, const(ubyte, 0));
+		jit_insn_branch_if_not(ctx->func, tmp, ctx->noMatch);
+
+		jit_insn_label(ctx->func, &doesMatch);
+	}
+	else
+	{
+		tmp = jit_insn_eq(ctx->func, curr, const(ubyte, 0));
+		jit_insn_branch_if_not(ctx->func, tmp, ctx->noMatch);
+	}
+}
+
 void regjit_compile_repeat(regjit_compilation_t *ctx, regjit_expression_t *expr)
 {
 	regjit_repeat_t *repeat = expr->args.repeat;
@@ -350,6 +405,14 @@ void regjit_compile_expression(regjit_compilation_t *ctx, regjit_expression_t *e
 			regjit_compile_or(ctx, expr);
 			break;
 
+		case REGJIT_EXPR_LINE_START:
+			regjit_compile_line_start(ctx, expr);
+			break;
+
+		case REGJIT_EXPR_LINE_END:
+			regjit_compile_line_end(ctx, expr);
+			break;
+
 		case REGJIT_EXPR_REPEAT:
 			regjit_compile_repeat(ctx, expr);
 			break;
@@ -380,45 +443,49 @@ regjit_regex_t *regjit_compile(const char *expression, unsigned flags)
 
 	jit_type_t args[] = {
 		jit_type_void_ptr, // text
+		jit_type_void_ptr, // textStart
 		jit_type_void_ptr, // textEnd
 		jit_type_void_ptr, // matches
 	};
-	jit_type_t signature = jit_type_create_signature(jit_abi_cdecl, jit_type_ubyte, args, 3, 0);
+	jit_type_t signature = jit_type_create_signature(jit_abi_cdecl, jit_type_ubyte, args, 4, 0);
 
 	jit_label_t noMatch = jit_label_undefined;
 	regjit_compilation_t ctx;
 	ctx.func = jit_function_create(context, signature);
+	ctx.flags = flags;
 	ctx.str = jit_value_get_param(ctx.func, 0);
-	ctx.strEnd = jit_value_get_param(ctx.func, 1);
+	ctx.strStart = jit_value_get_param(ctx.func, 1);
+	ctx.strEnd = jit_value_get_param(ctx.func, 2);
 	ctx.noMatch = &noMatch;
-	ctx.groups = jit_value_get_param(ctx.func, 2);
+	ctx.groups = jit_value_get_param(ctx.func, 3);
 	ctx.groupCount = 0;
 
 	regjit_compile_global(&ctx, rootExpr);
 
-	char *name;
 	if(flags & REGJIT_FLAG_DEBUG)
 	{
-		name = malloc(strlen(expression) + strlen("regexp('')") + 1);
+		char *name = malloc(strlen(expression) + strlen("regexp('')") + 1);
 		sprintf(name, "regexp('%s')", expression);
 
 		jit_dump_function(stdout, ctx.func, name);
 		jit_function_optimize(ctx.func);
 		jit_dump_function(stdout, ctx.func, name);
-	}
 
-	jit_function_compile(ctx.func);
-
-	if(flags & REGJIT_FLAG_DEBUG)
-	{
+		jit_function_compile(ctx.func);
 		jit_dump_function(stdout, ctx.func, name);
+
 		free(name);
+	}
+	else
+	{
+		jit_function_compile(ctx.func);
 	}
 
 	regjit_regex_t *reg = malloc(sizeof(regjit_regex_t));
 	reg->func = ctx.func;
 	reg->closure = jit_function_to_closure(ctx.func);
 	reg->groupCount = ctx.groupCount;
+	reg->flags = ctx.flags;
 
 	return reg;
 }
@@ -435,18 +502,20 @@ unsigned regjit_match_count(regjit_regex_t *reg)
 	return reg->groupCount;
 }
 
-bool regjit_match_single(regjit_regex_t *reg, regjit_match_t *matches, const char *text, const char *textEnd)
+bool regjit_match_single(regjit_regex_t *reg, regjit_match_t *matches,
+	const char *text, const char *textStart, const char *textEnd)
 {
 	uint8_t ret;
 
 	if(reg->closure != NULL)
 	{
-		ret = reg->closure(text, textEnd, matches);
+		ret = reg->closure(text, textStart, textEnd, matches);
 	}
 	else
 	{
 		void *args[] = {
 			&text,
+			&textStart,
 			&textEnd,
 			&matches,
 		};
@@ -459,11 +528,15 @@ bool regjit_match_single(regjit_regex_t *reg, regjit_match_t *matches, const cha
 
 bool regjit_match(regjit_regex_t *reg, regjit_match_t *matches, const char *text)
 {
-	const char *textEnd = text + strlen(text);
+	const char *textStart = text;
+	const char *textEnd = textStart + strlen(textStart);
+
+	if(reg->flags & REGJIT_FLAG_MATCHES_START)
+		return regjit_match_single(reg, matches, text, textStart, textEnd);
 
 	while(text < textEnd)
 	{
-		if(regjit_match_single(reg, matches, text, textEnd))
+		if(regjit_match_single(reg, matches, text, textStart, textEnd))
 			return true;
 		text++;
 	}

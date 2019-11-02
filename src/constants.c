@@ -35,8 +35,8 @@ const regjit_charset_t regjit_charset_non_whitespace = {
 };
 
 static const regjit_charset_range_t bigAlphaRange = {
-	.min = 'a',
-	.max = 'z',
+	.min = 'A',
+	.max = 'Z',
 	.next = &digitRange,
 };
 static const regjit_charset_range_t smallAlphaRange = {

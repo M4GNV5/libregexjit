@@ -37,6 +37,8 @@ regjit_expression_t *create_charset_expression(const regjit_charset_t *charset)
 %token <literal> CHARSET_CUSTOM
 %token <repetition> REPEAT_RANGE
 %token OR
+%token LINE_START
+%token LINE_END
 %token CHARSET_ALL
 %token CHARSET_DIGITS
 %token CHARSET_NON_DIGITS
@@ -52,13 +54,14 @@ regjit_expression_t *create_charset_expression(const regjit_charset_t *charset)
 %token REPEAT_AT_MOST_ONCE
 %token REPEAT_OPEN
 %token REPEAT_CLOSE
-%token COMMA
 
 %type <expr> Expression
 %type <expr> Constant
 %type <expr> Charset
 %type <expr> Group
 %type <expr> OrExpression
+%type <expr> LineStartExpression
+%type <expr> LineEndExpression
 %type <expr> RepeatedExpression
 %type <exprlist> ExpressionList
 %type <repetition> Repetition
@@ -98,6 +101,8 @@ Expression:
 	| Charset
 	| Group
 	| OrExpression
+	| LineStartExpression
+	| LineEndExpression
 	| RepeatedExpression
 	;
 
@@ -232,6 +237,22 @@ OrExpression:
 				$$->kind = REGJIT_EXPR_OR;
 				$$->args.body = left;
 			}
+		}
+	;
+
+LineStartExpression:
+	LINE_START
+		{
+			$$ = malloc(sizeof(regjit_expression_t));
+			$$->kind = REGJIT_EXPR_LINE_START;
+		}
+	;
+
+LineEndExpression:
+	LINE_END
+		{
+			$$ = malloc(sizeof(regjit_expression_t));
+			$$->kind = REGJIT_EXPR_LINE_END;
 		}
 	;
 

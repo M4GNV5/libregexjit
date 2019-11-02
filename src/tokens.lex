@@ -4,13 +4,15 @@
 #include "parser.h"
 %}
 
-literal			([^\|\*\+\?\(\)\[\]\{\}\.]|\\.)+
+literal			([^\|\^\$\*\+\?\(\)\[\]\{\}\.]|\\.)+
 charset			\[[^\]]+\]
 range			\{[0-9]+,?[0-9]*\}
 
 %%
 
 "|"				return(OR);
+"^"				return(LINE_START);
+"$"				return(LINE_END);
 "*"				return(REPEAT_ANY);
 "+"				return(REPEAT_AT_LEAST_ONCE);
 "?"				return(REPEAT_AT_MOST_ONCE);

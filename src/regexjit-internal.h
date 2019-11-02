@@ -2,6 +2,9 @@
 
 #include "regexjit.h"
 
+//flags <= 0xff are public and defined in regexjit.h
+#define REGJIT_FLAG_MATCHES_START 0x100
+
 typedef struct regjit_charset_range
 {
 	char min;
@@ -33,6 +36,8 @@ typedef struct
 		REGJIT_EXPR_CONST,
 		REGJIT_EXPR_CHARSET,
 		REGJIT_EXPR_OR,
+		REGJIT_EXPR_LINE_START,
+		REGJIT_EXPR_LINE_END,
 		REGJIT_EXPR_REPEAT,
 		REGJIT_EXPR_GROUP,
 		REGJIT_EXPR_EXPRLIST,

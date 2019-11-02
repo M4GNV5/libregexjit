@@ -48,7 +48,8 @@ The Regex Syntax is the same as the one used in Javascript, check
 for a documentation.
 
 List of not yet implemented features:
-- [ ] `^`, `$` and the multiline flag
+- [x] `^`, `$` and the multiline flag
+- [ ] `\b` word border
 - [ ] `x(?=y)` x followed by y
 - [ ] `x(?!y)` x not followed by y
 - [ ] `(?<=y)x` x preceeded by y
