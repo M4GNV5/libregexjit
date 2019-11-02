@@ -41,3 +41,14 @@ void foo()
 	printf("found url: %.*s\n", len, matches[1].start);
 }
 ```
+
+## Regex Flavour
+The Regex Syntax is the same as the one used in Javascript, check
+[MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions)
+for a documentation.
+
+List of not yet implemented features:
+- [ ] `^`, `$` and the multiline flag
+- [ ] `x(?=y)` x followed by y
+- [ ] `x(?!y)` x not followed by y
+- [ ] `(?<=y)x` x preceeded by y

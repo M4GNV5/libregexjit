@@ -81,7 +81,7 @@ RootRule:
 	;
 
 ExpressionList:
-	  Expression ExpressionList
+	Expression ExpressionList
 	  	{
 			$$ = malloc(sizeof(regjit_expr_list_t));
 			$$->expr = $1;
