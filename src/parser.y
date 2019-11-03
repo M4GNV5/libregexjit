@@ -13,7 +13,7 @@ regjit_repeat_t *create_repetition(size_t min, size_t max)
 	return repeat;
 }
 
-regjit_expression_t *create_charset_expression(const regjit_charset_t *charset)
+regjit_expression_t *create_charset_expression(regjit_charset_t *charset)
 {
 	regjit_expression_t *expr = malloc(sizeof(regjit_expression_t));
 	expr->kind = REGJIT_EXPR_CHARSET;
@@ -39,6 +39,8 @@ regjit_expression_t *create_charset_expression(const regjit_charset_t *charset)
 %token OR
 %token LINE_START
 %token LINE_END
+%token WORD_BORDER
+%token NON_WORD_BORDER
 %token CHARSET_ALL
 %token CHARSET_DIGITS
 %token CHARSET_NON_DIGITS
@@ -62,6 +64,7 @@ regjit_expression_t *create_charset_expression(const regjit_charset_t *charset)
 %type <expr> OrExpression
 %type <expr> LineStartExpression
 %type <expr> LineEndExpression
+%type <expr> WordBorderExpression
 %type <expr> RepeatedExpression
 %type <exprlist> ExpressionList
 %type <repetition> Repetition
@@ -98,6 +101,7 @@ ExpressionList:
 
 Expression:
 	  Constant
+	| WordBorderExpression
 	| Charset
 	| Group
 	| OrExpression
@@ -253,6 +257,21 @@ LineEndExpression:
 		{
 			$$ = malloc(sizeof(regjit_expression_t));
 			$$->kind = REGJIT_EXPR_LINE_END;
+		}
+	;
+
+WordBorderExpression:
+	  WORD_BORDER
+		{
+			$$ = malloc(sizeof(regjit_expression_t));
+			$$->kind = REGJIT_EXPR_WORD_BORDER;
+			$$->args.inverted = false;
+		}
+	| NON_WORD_BORDER
+		{
+			$$ = malloc(sizeof(regjit_expression_t));
+			$$->kind = REGJIT_EXPR_WORD_BORDER;
+			$$->args.inverted = true;
 		}
 	;
 

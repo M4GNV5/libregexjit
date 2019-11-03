@@ -266,6 +266,36 @@ void regjit_compile_line_end(regjit_compilation_t *ctx, regjit_expression_t *exp
 	}
 }
 
+void regjit_compile_word_border(regjit_compilation_t *ctx, regjit_expression_t *expr)
+{
+	jit_value_t tmp;
+	jit_value_t isPrevWord = jit_value_create(ctx->func, jit_type_uint);
+	jit_label_t atStrStart = jit_label_undefined;
+	jit_label_t checkPrevByCharset = jit_label_undefined;
+
+	tmp = jit_insn_load_relative(ctx->func, ctx->str, 0, jit_type_ubyte);
+	jit_value_t isCurrWord = regjit_match_charset(ctx, &regjit_charset_word, tmp);
+
+	tmp = jit_insn_eq(ctx->func, ctx->str, ctx->strStart);
+	jit_insn_branch_if_not(ctx->func, tmp, &checkPrevByCharset);
+
+	jit_insn_store(ctx->func, isPrevWord, const(uint, 0));
+	jit_insn_branch(ctx->func, &atStrStart);
+
+	jit_insn_label(ctx->func, &checkPrevByCharset);
+	tmp = jit_insn_load_relative(ctx->func, ctx->str, -1, jit_type_ubyte);
+	tmp = regjit_match_charset(ctx, &regjit_charset_word, tmp);
+	jit_insn_store(ctx->func, isPrevWord, tmp);
+
+	jit_insn_label(ctx->func, &atStrStart);
+	tmp = jit_insn_xor(ctx->func, isPrevWord, isCurrWord);
+
+	if(expr->args.inverted)
+		jit_insn_branch_if(ctx->func, tmp, ctx->noMatch);
+	else
+		jit_insn_branch_if_not(ctx->func, tmp, ctx->noMatch);
+}
+
 void regjit_compile_repeat(regjit_compilation_t *ctx, regjit_expression_t *expr)
 {
 	regjit_repeat_t *repeat = expr->args.repeat;
@@ -347,6 +377,10 @@ void regjit_compile_expression(regjit_compilation_t *ctx, regjit_expression_t *e
 
 		case REGJIT_EXPR_LINE_END:
 			regjit_compile_line_end(ctx, expr);
+			break;
+
+		case REGJIT_EXPR_WORD_BORDER:
+			regjit_compile_word_border(ctx, expr);
 			break;
 
 		case REGJIT_EXPR_REPEAT:

@@ -49,7 +49,7 @@ for a documentation.
 
 List of not yet implemented features:
 - [x] `^`, `$` and the multiline flag
-- [ ] `\b` word border
+- [x] `\b` and `\B` word border
 - [ ] `x(?=y)` x followed by y
 - [ ] `x(?!y)` x not followed by y
 - [ ] `(?<=y)x` x preceeded by y

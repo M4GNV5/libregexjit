@@ -40,6 +40,7 @@ typedef struct
 		REGJIT_EXPR_OR,
 		REGJIT_EXPR_LINE_START,
 		REGJIT_EXPR_LINE_END,
+		REGJIT_EXPR_WORD_BORDER,
 		REGJIT_EXPR_REPEAT,
 		REGJIT_EXPR_GROUP,
 		REGJIT_EXPR_EXPRLIST,
@@ -50,6 +51,7 @@ typedef struct
 		regjit_charset_t *charset;
 		regjit_expr_list_t *body;
 		regjit_repeat_t *repeat;
+		bool inverted;
 	} args;
 } regjit_expression_t;
 
