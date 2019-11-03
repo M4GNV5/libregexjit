@@ -14,17 +14,19 @@ typedef struct regjit_charset_range
 typedef struct regjit_charset
 {
 	bool inverted;
+	bool lookupInitialized;
 	const char *whitelist;
 	const regjit_charset_range_t *ranges;
+	uint8_t lookup[256];
 } regjit_charset_t;
 
-extern const regjit_charset_t regjit_charset_all;
-extern const regjit_charset_t regjit_charset_digits;
-extern const regjit_charset_t regjit_charset_non_digits;
-extern const regjit_charset_t regjit_charset_whitespace;
-extern const regjit_charset_t regjit_charset_non_whitespace;
-extern const regjit_charset_t regjit_charset_word;
-extern const regjit_charset_t regjit_charset_non_word;
+extern regjit_charset_t regjit_charset_all;
+extern regjit_charset_t regjit_charset_digits;
+extern regjit_charset_t regjit_charset_non_digits;
+extern regjit_charset_t regjit_charset_whitespace;
+extern regjit_charset_t regjit_charset_non_whitespace;
+extern regjit_charset_t regjit_charset_word;
+extern regjit_charset_t regjit_charset_non_word;
 
 typedef struct regjit_expr_list regjit_expr_list_t;
 typedef struct regjit_repeat regjit_repeat_t;
@@ -45,7 +47,7 @@ typedef struct
 	union
 	{
 		const char *literal;
-		const regjit_charset_t *charset;
+		regjit_charset_t *charset;
 		regjit_expr_list_t *body;
 		regjit_repeat_t *repeat;
 	} args;

@@ -104,124 +104,60 @@ void regjit_compile_const(regjit_compilation_t *ctx, regjit_expression_t *expr)
 	jit_insn_store(ctx->func, ctx->str, tmp1);
 }
 
-void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr)
+jit_value_t regjit_match_charset(regjit_compilation_t *ctx,
+	regjit_charset_t *charset, jit_value_t input)
 {
 	jit_value_t tmp;
-	const regjit_charset_t *charset = expr->args.charset;
-	jit_value_t input = jit_insn_load_relative(ctx->func, ctx->str, 0, jit_type_ubyte);
-	jit_label_t doesMatch = jit_label_undefined;
 
-	tmp = jit_insn_eq(ctx->func, input, const(ubyte, 0));
-	jit_insn_branch_if(ctx->func, tmp, ctx->noMatch);
-
-	// special case for charsets that matches everything (i.e. '.')
+	// special case for charsets that match everything (i.e. '.' and [^])
 	if(charset->ranges == NULL && charset->whitelist == NULL)
 	{
 		if(charset->inverted)
-		{
-			jit_insn_branch(ctx->func, ctx->noMatch);
-		}
-		else
-		{
-			tmp = jit_insn_add(ctx->func, ctx->str, const(nuint, 1));
-			jit_insn_store(ctx->func, ctx->str, tmp);
-		}
+			return const(ubyte, 0);
 
-		return;
+		return jit_insn_ne(ctx->func, input, const(ubyte, 0));
 	}
 
-	jit_label_t *foundMatchingChar;
+	if(!charset->lookupInitialized)
+	{
+		memset(charset->lookup, 0, 256);
+
+		const regjit_charset_range_t *range = charset->ranges;
+		for(; range != NULL; range = range->next)
+		{
+			for(char i = range->min; i <= range->max; i++)
+			{
+				charset->lookup[i] = 1;
+			}
+		}
+
+		if(charset->whitelist)
+		{
+			const char *whitelist = charset->whitelist;
+			for(; *whitelist != 0; whitelist++)
+				charset->lookup[*whitelist] = 1;
+		}
+
+		charset->lookupInitialized = true;
+	}
+
+	tmp = jit_insn_load_elem(ctx->func,
+		const(void_ptr, (uintptr_t)charset->lookup), input, jit_type_ubyte);
+
 	if(charset->inverted)
-		foundMatchingChar = ctx->noMatch;
+		return jit_insn_eq(ctx->func, tmp, const(ubyte, 0));
 	else
-		foundMatchingChar = &doesMatch;
+		return jit_insn_ne(ctx->func, tmp, const(ubyte, 0));
+}
 
-	const regjit_charset_range_t *range = charset->ranges;
-	for(; range != NULL; range = range->next)
-	{
-		tmp = jit_insn_sub(ctx->func, input, const(ubyte, range->min));
-		tmp = jit_insn_le(ctx->func, tmp, const(ubyte, range->max - range->min));
-		jit_insn_branch_if(ctx->func, tmp, foundMatchingChar);
-	}
-
-	if(charset->whitelist)
-	{
-		const char *whitelist = charset->whitelist;
-		size_t len = strlen(whitelist);
-		jit_value_t mask32;
-		jit_value_t mask;
-
-		if(len >= 8)
-		{
-			mask = jit_insn_convert(ctx->func, input, jit_type_ulong, 0);
-			for(int i = 8; i <= 32; i *= 2)
-			{
-				tmp = jit_insn_shl(ctx->func, mask, constl(ulong, i));
-				mask = jit_insn_or(ctx->func, tmp, mask);
-
-				if(i == 16)
-					mask32 = mask;
-			}
-		}
-		else if(len >= 4)
-		{
-			mask32 = jit_insn_convert(ctx->func, input, jit_type_uint, 0);
-			for(int i = 8; i <= 16; i *= 2)
-			{
-				tmp = jit_insn_shl(ctx->func, mask32, const(uint, i));
-				mask32 = jit_insn_or(ctx->func, tmp, mask32);
-			}
-		}
-
-		while(len >= 8)
-		{
-			jit_value_t chunk = constl(ulong, *(uint64_t *)whitelist);
-			tmp = jit_insn_xor(ctx->func, chunk, mask);
-			tmp = jit_insn_add(ctx->func, tmp, constl(ulong, 0x7f7f7f7f7f7f7f7f));
-
-			jit_value_t holes = constl(ulong, 0x8080808080808080);
-			tmp = jit_insn_and(ctx->func, tmp, holes);
-			tmp = jit_insn_ne(ctx->func, tmp, holes);
-			jit_insn_branch_if(ctx->func, tmp, foundMatchingChar);
-
-			whitelist += 8;
-			len -= 8;
-		}
-
-		if(len >= 4)
-		{
-			jit_value_t chunk = const(uint, *(uint32_t *)whitelist);
-			tmp = jit_insn_xor(ctx->func, chunk, mask32);
-			tmp = jit_insn_add(ctx->func, tmp, const(uint, 0x7f7f7f7f));
-
-			jit_value_t holes = const(uint, 0x80808080);
-			tmp = jit_insn_and(ctx->func, tmp, holes);
-			tmp = jit_insn_ne(ctx->func, tmp, holes);
-			jit_insn_branch_if(ctx->func, tmp, foundMatchingChar);
-
-			whitelist += 4;
-			len -= 4;
-		}
-
-		while(len > 0)
-		{
-			tmp = jit_insn_eq(ctx->func, input, const(uint, *whitelist));
-			jit_insn_branch_if(ctx->func, tmp, foundMatchingChar);
-
-			whitelist++;
-			len--;
-		}
-	}
-
-	if(!charset->inverted)
-	{
-		//we checked all chars in the whitelist but found no matching one
-		// => the char does not match
-		jit_insn_branch(ctx->func, ctx->noMatch);
-
-		//we jump here when we successfully found a match
-		jit_insn_label(ctx->func, &doesMatch);
-	}
+void regjit_compile_charset(regjit_compilation_t *ctx, regjit_expression_t *expr)
+{
+	regjit_charset_t *charset = expr->args.charset;
+	jit_value_t tmp;
+	
+	tmp = jit_insn_load_relative(ctx->func, ctx->str, 0, jit_type_ubyte);
+	tmp = regjit_match_charset(ctx, charset, tmp);
+	jit_insn_branch_if_not(ctx->func, tmp, ctx->noMatch);
 
 	tmp = jit_insn_add(ctx->func, ctx->str, const(nuint, 1));
 	jit_insn_store(ctx->func, ctx->str, tmp);

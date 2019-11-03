@@ -1,8 +1,9 @@
 #include "regexjit-internal.h"
 
 //no char whitelist and char ranges mean all chars match
-const regjit_charset_t regjit_charset_all = {
+regjit_charset_t regjit_charset_all = {
 	.inverted = false,
+	.lookupInitialized = false,
 	.whitelist = NULL,
 	.ranges = NULL,
 };
@@ -12,24 +13,28 @@ static const regjit_charset_range_t digitRange = {
 	.max = '9',
 	.next = NULL,
 };
-const regjit_charset_t regjit_charset_digits = {
+regjit_charset_t regjit_charset_digits = {
 	.inverted = false,
+	.lookupInitialized = false,
 	.whitelist = NULL,
 	.ranges = &digitRange,
 };
-const regjit_charset_t regjit_charset_non_digits = {
+regjit_charset_t regjit_charset_non_digits = {
 	.inverted = true,
+	.lookupInitialized = false,
 	.whitelist = NULL,
 	.ranges = &digitRange,
 };
 
-const regjit_charset_t regjit_charset_whitespace = {
+regjit_charset_t regjit_charset_whitespace = {
 	.inverted = false,
+	.lookupInitialized = false,
 	.whitelist = "\f\n\r\t\v",
 	.ranges = NULL,
 };
-const regjit_charset_t regjit_charset_non_whitespace = {
+regjit_charset_t regjit_charset_non_whitespace = {
 	.inverted = true,
+	.lookupInitialized = false,
 	.whitelist = "\f\n\r\t\v",
 	.ranges = NULL,
 };
@@ -44,13 +49,15 @@ static const regjit_charset_range_t smallAlphaRange = {
 	.max = 'z',
 	.next = &bigAlphaRange,
 };
-const regjit_charset_t regjit_charset_word = {
+regjit_charset_t regjit_charset_word = {
 	.inverted = false,
+	.lookupInitialized = false,
 	.whitelist = "_",
 	.ranges = &smallAlphaRange,
 };
-const regjit_charset_t regjit_charset_non_word = {
+regjit_charset_t regjit_charset_non_word = {
 	.inverted = true,
+	.lookupInitialized = false,
 	.whitelist = "_",
 	.ranges = &smallAlphaRange,
 };
