@@ -435,6 +435,18 @@ regjit_regex_t *regjit_compile(const char *expression, unsigned flags)
 
 	regjit_compile_global(&ctx, rootExpr);
 
+	unsigned level;
+	if(flags & REGJIT_FLAG_OPTIMIZE_0)
+		level = 0;
+	else if(flags & REGJIT_FLAG_OPTIMIZE_1)
+		level = 1;
+	else if(flags & REGJIT_FLAG_OPTIMIZE_2)
+		level = 2;
+	else // REGJIT_FLAG_OPTIMIZE_3
+		level = jit_function_get_max_optimization_level(); // should be 3?
+
+	jit_function_set_optimization_level(ctx.func, level);
+
 	if(flags & REGJIT_FLAG_DEBUG)
 	{
 		char *name = malloc(strlen(expression) + strlen("regexp('')") + 1);
