@@ -109,7 +109,7 @@ jit_value_t regjit_match_charset(regjit_compilation_t *ctx,
 {
 	jit_value_t tmp;
 
-	// special case for charsets that match everything (i.e. '.' and [^])
+	// special case for charsets that match everything (i.e. [] and [^])
 	if(charset->ranges == NULL && charset->whitelist == NULL)
 	{
 		if(charset->inverted)

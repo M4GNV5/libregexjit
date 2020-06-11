@@ -1,10 +1,9 @@
 #include "regexjit-internal.h"
 
-//no char whitelist and char ranges mean all chars match
-regjit_charset_t regjit_charset_all = {
-	.inverted = false,
+regjit_charset_t regjit_charset_dot = {
+	.inverted = true,
 	.lookupInitialized = false,
-	.whitelist = NULL,
+	.whitelist = "\r\n",
 	.ranges = NULL,
 };
 

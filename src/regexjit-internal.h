@@ -20,7 +20,7 @@ typedef struct regjit_charset
 	uint8_t lookup[256];
 } regjit_charset_t;
 
-extern regjit_charset_t regjit_charset_all;
+extern regjit_charset_t regjit_charset_dot;
 extern regjit_charset_t regjit_charset_digits;
 extern regjit_charset_t regjit_charset_non_digits;
 extern regjit_charset_t regjit_charset_whitespace;

@@ -172,7 +172,7 @@ Charset:
 		}
 	| CHARSET_ALL
 		{
-			$$ = create_charset_expression(&regjit_charset_all);
+			$$ = create_charset_expression(&regjit_charset_dot);
 		}
 	| CHARSET_DIGITS
 		{
