@@ -10,8 +10,16 @@ expressions.
 ```C
 regjit_regex_t *regjit_compile(const char *expression, unsigned flags);
 void regjit_destroy(regjit_regex_t *reg);
+
+#define REGJIT_FLAG_DEBUG // dumps jit'ed function IR and machine code
+#define REGJIT_FLAG_MULTILINE
+#define REGJIT_FLAG_OPTIMIZE_0
+#define REGJIT_FLAG_OPTIMIZE_1
+#define REGJIT_FLAG_OPTIMIZE_2
+#define REGJIT_FLAG_OPTIMIZE_3 // default
 ```
-compile and destroy regular expressions
+compile and destroy regular expressions. `flags` can be any of the constants or'ed
+together. Only one optimization level at a time is supported.
 
 ```C
 unsigned regjit_match_count(regjit_regex_t *reg);
@@ -44,12 +52,13 @@ void foo()
 
 ## Regex Flavour
 The Regex Syntax is the same as the one used in Javascript, check
-[MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions)
+[MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet)
 for a documentation.
 
-List of not yet implemented features:
+List of (not yet) implemented features:
 - [x] `^`, `$` and the multiline flag
 - [x] `\b` and `\B` word border
+- [ ] `.*?` non-greedy match
 - [ ] `x(?=y)` x followed by y
 - [ ] `x(?!y)` x not followed by y
 - [ ] `(?<=y)x` x preceeded by y
