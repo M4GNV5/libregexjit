@@ -138,6 +138,9 @@ jit_value_t regjit_match_charset(regjit_compilation_t *ctx,
 				charset->lookup[*whitelist] = 1;
 		}
 
+		// make sure we never match the end of the string and thus exceed it
+		charset->lookup[0] = charset->inverted ? 1 : 0;
+
 		charset->lookupInitialized = true;
 	}
 
